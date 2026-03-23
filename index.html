@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TUBE CLICKER - Streamer Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+         :root {
+            --primary: #ef4444;
+            /* Vermelho estilo YouTube */
+            --primary-glow: rgba(239, 68, 68, 0.4);
+            --bg: #121214;
+            --card-bg: #18181b;
+            --item-bg: #27272a;
+        }
+        
+        body {
+            background-color: var(--bg);
+            background-image: radial-gradient(circle at top right, #1f1f22 0%, var(--bg) 100%);
+            color: #f4f4f5;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            height: 100dvh;
+        }
+        /* Estilos e Sombras Profissionais */
+        
+        .clicker-card {
+            background-color: var(--card-bg);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(239, 68, 68, 0.2);
+            border-radius: 24px;
+        }
+        
+        .prestige-card {
+            background-color: var(--card-bg);
+            box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.3);
+        }
+        
+        .item-card {
+            background-color: var(--item-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .taco-glow {
+            filter: drop-shadow(0 0 35px var(--primary-glow));
+            transition: transform 0.05s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .taco-glow:active {
+            transform: scale(0.92);
+        }
+        
+        @keyframes floatUp {
+            0% {
+                opacity: 0;
+                transform: translateY(0) scale(0.8);
+            }
+            20% {
+                opacity: 1;
+                transform: translateY(-20px) scale(1.1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(1);
+            }
+        }
+        
+        .floating-text {
+            position: absolute;
+            pointer-events: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 900;
+            animation: floatUp 0.7s ease-out forwards;
+            z-index: 50;
+            color: var(--primary);
+            text-shadow: 0 2px 10px var(--primary-glow);
+        }
+        /* Custom Scrollbar Mobile */
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3f3f46;
+            border-radius: 10px;
+        }
+        /* Classes de estado dos itens corrigidas */
+        
+        .item-locked {
+            opacity: 0.4;
+            filter: grayscale(1);
+            cursor: not-allowed;
+            transition: all 0.3s ease;
+        }
+        
+        .item-unlocked {
+            opacity: 1;
+            filter: grayscale(0);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .item-unlocked:active {
+            transform: scale(0.98);
+        }
+        
+        .item-owned {
+            border-color: #10b981 !important;
+            background-color: rgba(16, 185, 129, 0.05) !important;
+        }
+        
+        .lvl-bar-bg {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .lvl-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s ease;
+            box-shadow: 0 0 8px var(--primary-glow);
+        }
+    </style>
+</head>
+
+<body class="flex flex-col p-4 md:p-6 lg:p-8">
+
+    <div id="bug-overlay" class="fixed inset-0 flex items-center justify-center p-6 z-[200] hidden bg-black/90 backdrop-blur-md">
+        <div class="bg-[var(--card-bg)] p-8 border-2 border-red-600 rounded-3xl max-w-sm w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+            <h2 class="text-red-500 text-3xl font-black mb-2 italic tracking-tighter">STRIKE NO CANAL!</h2>
+            <p class="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-6">Reivindicação de Direitos Autorais! Clique rápido!</p>
+            <div class="h-4 bg-zinc-900 rounded-full overflow-hidden border border-white/10 mb-6">
+                <div id="bug-bar" class="h-full bg-red-600 w-full transition-all"></div>
+            </div>
+            <button onclick="fixBugManual()" class="w-full py-4 bg-red-600 text-white font-black rounded-xl active:scale-95 transition-transform">RECORRER AGORA</button>
+        </div>
+    </div>
+
+    <header class="max-w-6xl mx-auto w-full flex justify-between items-end mb-6 shrink-0">
+        <div>
+            <h1 class="text-3xl md:text-5xl font-black text-white italic tracking-tighter uppercase drop-shadow-lg flex items-center gap-2">
+                TUBE<span class="text-red-500">CLICKER</span>
+            </h1>
+            <p class="text-[10px] md:text-xs font-black text-red-500 uppercase tracking-widest mt-1">
+                Algoritmo: <span id="prestige-display" class="text-white">1.0</span>x
+            </p>
+        </div>
+        <div class="text-right">
+            <span class="text-[9px] md:text-[11px] text-zinc-500 uppercase font-black tracking-widest">Taxa de Visualizações</span>
+            <span class="text-red-500 font-mono text-2xl md:text-4xl font-black block mt-1"><span id="sps-display" class="text-white">0</span>/s</span>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+
+        <div class="lg:col-span-6 clicker-card relative p-6 md:p-10 flex flex-col items-center justify-center overflow-hidden h-full min-h-[300px]">
+            <div id="particles-container" class="absolute inset-0 pointer-events-none"></div>
+
+            <div class="text-center relative z-10 w-full mb-4">
+                <p class="text-[11px] md:text-xs uppercase text-zinc-500 font-black tracking-widest mb-2">Total de Views</p>
+                <h2 id="score-display" class="text-6xl md:text-[5.5rem] leading-none font-black text-white tracking-tighter font-mono drop-shadow-xl">0</h2>
+            </div>
+
+            <div id="taco-trigger" class="text-8xl md:text-[11rem] taco-glow select-none touch-manipulation z-10 cursor-pointer relative my-4">
+                ▶️
+            </div>
+
+            <div class="w-full max-w-sm z-10 mt-auto">
+                <div class="flex justify-between text-[10px] md:text-xs font-black mb-2 uppercase tracking-widest">
+                    <span id="combo-status" class="text-zinc-500 italic">Transmitindo...</span>
+                    <span id="combo-text" class="text-red-500">COMBO X0</span>
+                </div>
+                <div class="h-2 bg-black/60 rounded-full overflow-hidden">
+                    <div id="combo-bar" class="h-full bg-red-500 w-0 transition-all duration-75"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-6 flex flex-col gap-4 overflow-hidden h-full">
+
+            <div onclick="prestige()" class="prestige-card rounded-2xl p-4 md:p-5 flex items-center justify-between group hover:bg-[#1f2937] cursor-pointer transition-all shrink-0 active:scale-95 border border-emerald-500/20">
+                <div class="flex flex-col text-left">
+                    <span class="text-[10px] md:text-xs text-emerald-500 font-black uppercase italic tracking-widest">Placa do YouTube</span>
+                    <span class="text-sm md:text-lg font-black text-white uppercase tracking-tight mt-1">Criar Novo Canal</span>
+                </div>
+                <div class="flex flex-col text-right">
+                    <span class="text-xs md:text-sm font-black text-emerald-400">VIRALIZAR</span>
+                    <span id="prestige-bonus-hint" class="text-[10px] text-zinc-400 font-bold tracking-widest mt-1">+0.0x Bônus</span>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col min-h-0 bg-[var(--card-bg)] rounded-3xl overflow-hidden shadow-2xl border border-white/5">
+
+                <div class="flex border-b border-white/5 bg-[#121214]">
+                    <button onclick="switchTab('shop')" id="tab-shop" class="flex-1 py-4 md:py-5 text-[10px] md:text-xs font-black uppercase tracking-widest text-red-500 border-b-2 border-red-500 transition-colors">Equipe (Auto)</button>
+                    <button onclick="switchTab('hardware')" id="tab-hw" class="flex-1 py-4 md:py-5 text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition-colors">Setup (Manual)</button>
+                </div>
+
+                <div id="list-shop" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar"></div>
+                <div id="list-hardware" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar hidden"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- TEMA: YOUTUBER / STREAMER ---
+        const UPGRADES = [{
+            id: 0,
+            name: "Roteirista",
+            desc: "Escreve textos que prendem a atenção.",
+            cost: 15,
+            sps: 1.2,
+            icon: "📝"
+        }, {
+            id: 1,
+            name: "Editor Júnior",
+            desc: "Cortes rápidos e memes nos vídeos.",
+            cost: 250,
+            sps: 12,
+            icon: "✂️"
+        }, {
+            id: 2,
+            name: "Thumbmaker",
+            desc: "Capas impossíveis de não clicar.",
+            cost: 1800,
+            sps: 60,
+            icon: "🖼️"
+        }, {
+            id: 3,
+            name: "Social Media",
+            desc: "Divulga os vídeos no X e Insta.",
+            cost: 12000,
+            sps: 350,
+            icon: "📱"
+        }, {
+            id: 4,
+            name: "Editor Sênior",
+            desc: "Efeitos visuais de Hollywood.",
+            cost: 85000,
+            sps: 1800,
+            icon: "🎬"
+        }, {
+            id: 5,
+            name: "Agência PR",
+            desc: "Consegue patrocínios milionários.",
+            cost: 600000,
+            sps: 9000,
+            icon: "💼"
+        }, {
+            id: 6,
+            name: "Collab Famosa",
+            desc: "Feat com os maiores do mundo.",
+            cost: 4000000,
+            sps: 50000,
+            icon: "🤝"
+        }];
+
+        const HARDWARE = [{
+            id: 0,
+            name: "Ring Light",
+            desc: "Iluminação básica pro rosto.",
+            cost: 50,
+            spk: 2,
+            icon: "💡"
+        }, {
+            id: 1,
+            name: "Webcam HD",
+            desc: "Adeus câmera do notebook.",
+            cost: 500,
+            spk: 10,
+            icon: "📷"
+        }, {
+            id: 2,
+            name: "Microfone Condensador",
+            desc: "Áudio limpo estilo ASMR.",
+            cost: 4000,
+            spk: 55,
+            icon: "🎙️"
+        }, {
+            id: 3,
+            name: "Fundo Chroma Key",
+            desc: "Cenários falsos perfeitos.",
+            cost: 30000,
+            spk: 280,
+            icon: "🟩"
+        }, {
+            id: 4,
+            name: "PC da NASA",
+            desc: "Renderiza vídeos 8K em segundos.",
+            cost: 250000,
+            spk: 1500,
+            icon: "🖥️"
+        }, {
+            id: 5,
+            name: "Estúdio Acústico",
+            desc: "Isolamento e qualidade impecáveis.",
+            cost: 1200000,
+            spk: 8000,
+            icon: "🎧"
+        }];
+
+        let game = {
+            score: 0,
+            totalEver: 0,
+            prestigeMult: 1,
+            sps: 0,
+            spk: 1,
+            combo: 0,
+            comboTimer: 0,
+            bugActive: false,
+            bugHealth: 0,
+            ownedUpgrades: Array(UPGRADES.length).fill(0),
+            ownedHardware: Array(HARDWARE.length).fill(0)
+        };
+
+        let lastTime = performance.now();
+        let displayScore = 0;
+
+        function formatNumber(num) {
+            return Math.floor(num).toLocaleString('pt-BR');
+        }
+
+        function switchTab(tab) {
+            const isShop = tab === 'shop';
+            document.getElementById('list-shop').classList.toggle('hidden', !isShop);
+            document.getElementById('list-hardware').classList.toggle('hidden', isShop);
+
+            const btnActive = "flex-1 py-4 md:py-5 text-[10px] md:text-xs font-black uppercase tracking-widest text-red-500 border-b-2 border-red-500 transition-colors";
+            const btnInactive = "flex-1 py-4 md:py-5 text-[10px] md:text-xs font-black uppercase tracking-widest text-zinc-500 border-b-2 border-transparent hover:text-zinc-300 transition-colors";
+
+            document.getElementById('tab-shop').className = isShop ? btnActive : btnInactive;
+            document.getElementById('tab-hw').className = !isShop ? btnActive : btnInactive;
+        }
+
+        function init() {
+            load();
+            displayScore = game.score;
+            renderAll();
+            requestAnimationFrame(gameLoop);
+            setInterval(updateShopUI, 250);
+            setInterval(save, 5000);
+
+            // Strike aleatório
+            setInterval(() => {
+                if (!game.bugActive && game.score > 5000 && Math.random() > 0.8) triggerBug();
+            }, 60000);
+
+            const taco = document.getElementById('taco-trigger');
+            let lastTouchTime = 0;
+
+            taco.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                lastTouchTime = Date.now();
+                handleInput(e.touches[0].clientX, e.touches[0].clientY);
+            });
+
+            taco.addEventListener('mousedown', (e) => {
+                if (Date.now() - lastTouchTime < 100) return;
+                handleInput(e.clientX, e.clientY);
+            });
+        }
+
+        function gameLoop(currentTime) {
+            let delta = currentTime - lastTime;
+            lastTime = currentTime;
+            if (delta > 1000) delta = 1000;
+
+            if (!game.bugActive) {
+                const mult = (game.combo >= 50 ? 2 : 1) * game.prestigeMult;
+                const gain = (game.sps * mult) * (delta / 1000);
+                game.score += gain;
+                game.totalEver += gain;
+            }
+
+            if (game.comboTimer > 0) {
+                game.comboTimer -= delta;
+                if (game.comboTimer <= 0) {
+                    game.combo = Math.max(0, game.combo - 3);
+                    if (game.combo > 0) game.comboTimer = 150;
+                }
+            }
+
+            displayScore += (game.score - displayScore) * 0.3;
+            if (Math.abs(game.score - displayScore) < 0.5) displayScore = game.score;
+
+            document.getElementById('score-display').innerText = formatNumber(Math.floor(displayScore));
+            document.getElementById('combo-bar').style.width = `${game.combo}%`;
+            document.getElementById('combo-text').innerText = `COMBO X${Math.floor(game.combo)}`;
+
+            const statusEl = document.getElementById('combo-status');
+            if (game.combo >= 50) {
+                statusEl.innerText = "Em Alta! (2x)";
+                statusEl.className = "text-red-500 italic font-black uppercase tracking-widest";
+            } else {
+                statusEl.innerText = "Transmitindo...";
+                statusEl.className = "text-zinc-500 italic font-black uppercase tracking-widest";
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateShopUI() {
+            const activeSps = game.sps * game.prestigeMult * (game.combo >= 50 ? 2 : 1);
+            document.getElementById('sps-display').innerText = formatNumber(activeSps);
+            document.getElementById('prestige-display').innerText = game.prestigeMult.toFixed(1);
+
+            const nextPrestige = Math.sqrt(game.totalEver / 1000000);
+            document.getElementById('prestige-bonus-hint').innerText = `+${nextPrestige.toFixed(1)}x Bônus`;
+
+            UPGRADES.forEach(u => {
+                const lvl = game.ownedUpgrades[u.id];
+                const cost = Math.floor(u.cost * Math.pow(1.15, lvl));
+                const card = document.getElementById(`upg-card-${u.id}`);
+
+                if (card) {
+                    if (game.score < cost) {
+                        card.classList.add('item-locked');
+                        card.classList.remove('item-unlocked', 'hover:bg-[#2e2e33]');
+                    } else {
+                        card.classList.remove('item-locked');
+                        card.classList.add('item-unlocked', 'hover:bg-[#2e2e33]');
+                    }
+                }
+
+                const bar = document.getElementById(`bar-upg-${u.id}`);
+                if (bar) {
+                    let progress = (lvl % 10) * 10;
+                    bar.style.width = `${progress}%`;
+                }
+
+                const costEl = document.getElementById(`upg-cost-${u.id}`);
+                if (costEl) costEl.innerText = formatNumber(cost);
+
+                const lvlEl = document.getElementById(`upg-lvl-${u.id}`);
+                if (lvlEl) lvlEl.innerText = `NÍVEL ${lvl}`;
+            });
+
+            HARDWARE.forEach(h => {
+                const owned = game.ownedHardware[h.id];
+                const card = document.getElementById(`hw-card-${h.id}`);
+                if (card) {
+                    if (owned) card.className = "item-card w-full rounded-2xl p-4 flex flex-col justify-center item-owned";
+                    else if (game.score < h.cost) card.className = "item-card w-full rounded-2xl p-4 flex flex-col justify-center item-locked";
+                    else card.className = "item-card w-full rounded-2xl p-4 flex flex-col justify-center item-unlocked hover:bg-[#2e2e33]";
+                }
+            });
+        }
+
+        function handleInput(x, y) {
+            if (game.bugActive) return;
+            const mult = (game.combo >= 50 ? 2 : 1) * game.prestigeMult;
+            const gain = game.spk * mult;
+            game.score += gain;
+            game.totalEver += gain;
+            game.combo = Math.min(game.combo + 1, 100);
+            game.comboTimer = 2000;
+
+            const spawnX = x || (window.innerWidth / 2);
+            const spawnY = y || (window.innerHeight / 2);
+            createFloatingText(spawnX, spawnY, `+${formatNumber(gain)}`);
+            updateShopUI();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (game.bugActive && (e.key === 'Backspace' || e.key === ' ')) fixBugManual();
+            else if (!game.bugActive) {
+                if (e.key === 'Backspace' || e.key === 'Enter' || e.key.length === 1) {
+                    handleInput();
+                }
+            }
+        });
+
+        // ALINHAMENTOS CORRIGIDOS PARA O LAYOUT FLEX
+        function renderAll() {
+            document.getElementById('list-shop').innerHTML = UPGRADES.map(u => `
+                <div id="upg-card-${u.id}" onclick="buyUpgrade(${u.id})" class="item-card w-full rounded-2xl p-4 flex flex-col justify-center item-locked">
+                    <div class="flex justify-between items-center w-full">
+                        <div class="flex items-center gap-4 max-w-[65%]">
+                            <span class="text-4xl drop-shadow-md shrink-0">${u.icon}</span>
+                            <div class="flex flex-col">
+                                <h4 class="text-[12px] md:text-sm font-black text-white uppercase tracking-tight leading-tight">${u.name}</h4>
+                                <p class="text-[9px] md:text-[10px] text-zinc-400 font-normal mt-0.5 leading-snug">${u.desc}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end text-right shrink-0">
+                            <span id="upg-cost-${u.id}" class="text-base md:text-lg font-black text-white font-mono leading-none">0</span>
+                            <p id="upg-lvl-${u.id}" class="text-[9px] text-zinc-500 font-black uppercase mt-1.5 tracking-widest">NÍVEL 0</p>
+                        </div>
+                    </div>
+                    <div class="lvl-bar-bg w-full"><div id="bar-upg-${u.id}" class="lvl-bar-fill" style="width: 0%"></div></div>
+                </div>
+            `).join('');
+
+            document.getElementById('list-hardware').innerHTML = HARDWARE.map(h => `
+                <div id="hw-card-${h.id}" onclick="buyHardware(${h.id})" class="item-card w-full rounded-2xl p-4 flex flex-col justify-center item-locked">
+                    <div class="flex justify-between items-center w-full">
+                        <div class="flex items-center gap-4 max-w-[65%]">
+                            <span class="text-4xl drop-shadow-md shrink-0">${h.icon}</span>
+                            <div class="flex flex-col">
+                                <h4 class="text-[12px] md:text-sm font-black text-white uppercase tracking-tight leading-tight">${h.name}</h4>
+                                <span class="text-[9px] md:text-[10px] text-red-400 font-black uppercase block mt-1">+${formatNumber(h.spk)} VIEWS/CLIQUE</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end text-right shrink-0">
+                             <div id="hw-status-${h.id}">
+                                <span class="text-base md:text-lg font-black text-white font-mono leading-none">${formatNumber(h.cost)}</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            updateShopUI();
+        }
+
+        function buyUpgrade(id) {
+            const u = UPGRADES[id];
+            const cost = Math.floor(u.cost * Math.pow(1.15, game.ownedUpgrades[id]));
+            if (game.score >= cost) {
+                game.score -= cost;
+                game.ownedUpgrades[id]++;
+                game.sps += u.sps;
+                updateShopUI();
+            }
+        }
+
+        function buyHardware(id) {
+            const h = HARDWARE[id];
+            if (game.score >= h.cost && !game.ownedHardware[id]) {
+                game.score -= h.cost;
+                game.ownedHardware[id] = 1;
+                game.spk += h.spk;
+                document.getElementById(`hw-status-${id}`).innerHTML = '<span class="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1 block">Adquirido</span>';
+                updateShopUI();
+            }
+        }
+
+        function triggerBug() {
+            game.bugActive = true;
+            game.bugHealth = 100;
+            document.getElementById('bug-bar').style.width = '100%';
+            document.getElementById('bug-overlay').classList.remove('hidden');
+        }
+
+        function fixBugManual() {
+            game.bugHealth -= 15;
+            document.getElementById('bug-bar').style.width = `${game.bugHealth}%`;
+            if (game.bugHealth <= 0) {
+                game.bugActive = false;
+                document.getElementById('bug-overlay').classList.add('hidden');
+                game.score += (game.sps * 200) + 1000;
+            }
+        }
+
+        function prestige() {
+            const min = 1000000;
+            if (game.score < min) return alert("Você precisa de no mínimo 1.000.000 de Views para criar um novo canal focado em viralizar.");
+            const bonus = Math.sqrt(game.totalEver / 1000000);
+            if (confirm(`DESEJA CRIAR UM NOVO CANAL?\n\nO Algoritmo vai te beneficiar com +${bonus.toFixed(1)}x de Bônus.\nIsso zerará sua equipe e setup atual, mas suas views subirão muito mais rápido.`)) {
+                game.prestigeMult += bonus;
+                game.score = 0;
+                game.sps = 0;
+                game.spk = 1;
+                game.ownedUpgrades = Array(UPGRADES.length).fill(0);
+                game.ownedHardware = Array(HARDWARE.length).fill(0);
+                renderAll();
+                save();
+            }
+        }
+
+        function createFloatingText(x, y, text) {
+            const p = document.createElement('div');
+            p.className = 'floating-text text-xl md:text-3xl';
+            p.innerText = text;
+            const randomX = x + (Math.random() * 40 - 20);
+            p.style.left = `${randomX}px`;
+            p.style.top = `${y - 40}px`;
+            document.getElementById('particles-container').appendChild(p);
+            setTimeout(() => p.remove(), 700);
+        }
+
+        function save() {
+            localStorage.setItem('tube_clicker_v16', JSON.stringify(game));
+        }
+
+        function load() {
+            let saved = localStorage.getItem('tube_clicker_v16');
+            if (!saved) saved = localStorage.getItem('times_clicker_v15'); // Tenta recuperar saves antigos
+
+            if (saved) {
+                const p = JSON.parse(saved);
+                game = {...game,
+                    ...p,
+                    ownedUpgrades: Array(UPGRADES.length).fill(0).map((v, i) => p.ownedUpgrades[i] || 0),
+                    ownedHardware: Array(HARDWARE.length).fill(0).map((v, i) => p.ownedHardware[i] || 0)
+                };
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
